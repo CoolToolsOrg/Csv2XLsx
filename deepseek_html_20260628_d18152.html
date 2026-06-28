@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSV → XLSX Converter</title>
+
+    <!-- SheetJS library (for XLSX generation) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            background: linear-gradient(145deg, #f6f9fc 0%, #e9f2f9 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 2.5rem;
+            box-shadow: 0 20px 60px rgba(0, 20, 40, 0.12), 0 8px 24px rgba(0, 0, 0, 0.05);
+            padding: 2.5rem 3rem;
+            max-width: 640px;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0b2b44;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.4rem;
+        }
+
+        h1 span {
+            background: #d0e6ff;
+            padding: 0.2rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #0057a3;
+            letter-spacing: 0.3px;
+        }
+
+        .subtitle {
+            color: #3d5a73;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #2b8cbe;
+            padding-left: 1rem;
+            background: #f0f7fe;
+            border-radius: 0 12px 12px 0;
+            line-height: 1.5;
+        }
+
+        .upload-area {
+            border: 2px dashed #b8d1e8;
+            border-radius: 1.5rem;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            background: #fafdff;
+            transition: border-color 0.25s, background 0.25s;
+            margin-bottom: 1.8rem;
+        }
+
+        .upload-area:hover {
+            border-color: #2b8cbe;
+            background: #f2faff;
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-area label {
+            display: inline-block;
+            background: #1a6b9e;
+            color: #fff;
+            font-weight: 600;
+            padding: 0.7rem 2rem;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            font-size: 1rem;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 8px rgba(26, 107, 158, 0.2);
+        }
+
+        .upload-area label:hover {
+            background: #0f5683;
+            transform: scale(1.02);
+        }
+
+        .upload-area label:active {
+            transform: scale(0.97);
+        }
+
+        #fileName {
+            display: block;
+            margin-top: 0.9rem;
+            font-size: 0.95rem;
+            color: #1f4970;
+            font-weight: 500;
+            word-break: break-all;
+            background: #eaf2fa;
+            padding: 0.4rem 1rem;
+            border-radius: 30px;
+            max-width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            background: #f5faff;
+            padding: 1rem 1.5rem;
+            border-radius: 1.2rem;
+        }
+
+        .options label {
+            font-weight: 600;
+            color: #1a4b6d;
+            font-size: 0.95rem;
+        }
+
+        .options select {
+            background: white;
+            border: 1.5px solid #c8dcec;
+            border-radius: 40px;
+            padding: 0.5rem 1.2rem;
+            font-size: 0.95rem;
+            color: #0b2b44;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .options select:focus {
+            border-color: #1a6b9e;
+            box-shadow: 0 0 0 3px rgba(26, 107, 158, 0.15);
+        }
+
+        .btn-convert {
+            width: 100%;
+            background: #0f8b3a;
+            color: white;
+            border: none;
+            border-radius: 60px;
+            padding: 0.9rem 1.5rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 6px 14px rgba(15, 139, 58, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+        }
+
+        .btn-convert:hover:not(:disabled) {
+            background: #0d752f;
+            transform: scale(1.01);
+            box-shadow: 0 8px 20px rgba(15, 139, 58, 0.35);
+        }
+
+        .btn-convert:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        .btn-convert:disabled {
+            background: #a0bccc;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #status {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-weight: 500;
+            font-size: 1rem;
+            min-height: 2rem;
+            padding: 0.5rem;
+            border-radius: 40px;
+            transition: all 0.2s;
+        }
+
+        #status.success {
+            background: #e5f6e5;
+            color: #0f6b2b;
+        }
+
+        #status.error {
+            background: #fde8e8;
+            color: #b31b1b;
+        }
+
+        .footnote {
+            margin-top: 1.8rem;
+            font-size: 0.85rem;
+            color: #64809b;
+            text-align: center;
+            border-top: 1px solid #dae8f2;
+            padding-top: 1.2rem;
+        }
+
+        .footnote a {
+            color: #1a6b9e;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footnote a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 500px) {
+            .card {
+                padding: 1.8rem 1.2rem;
+                border-radius: 1.8rem;
+            }
+            h1 {
+                font-size: 1.6rem;
+                flex-wrap: wrap;
+            }
+            .options {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.6rem;
+            }
+            .btn-convert {
+                font-size: 1rem;
+                padding: 0.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h1>
+            📄 CSV → XLSX
+            <span>free</span>
+        </h1>
+        <div class="subtitle">
+            Upload a CSV file &amp; download an Excel workbook instantly.
+            All processing stays in your browser.
+        </div>
+
+        <div class="upload-area">
+            <input type="file" id="fileInput" accept=".csv,.tsv,.txt" />
+            <label for="fileInput">📁 Choose CSV file</label>
+            <span id="fileName">No file selected</span>
+        </div>
+
+        <div class="options">
+            <label for="delimiter">Delimiter</label>
+            <select id="delimiter">
+                <option value="auto">🔍 Auto‑detect</option>
+                <option value=",">Comma ( , )</option>
+                <option value=";">Semicolon ( ; )</option>
+                <option value="&#9;">Tab</option>
+                <option value="|">Pipe ( | )</option>
+            </select>
+        </div>
+
+        <button class="btn-convert" id="convertBtn" disabled>
+            ⚡ Convert &amp; Download
+        </button>
+
+        <div id="status"></div>
+
+        <div class="footnote">
+            Built with <a href="https://sheetjs.com/" target="_blank">SheetJS</a> ·
+            No data is sent to any server
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+            const convertBtn = document.getElementById('convertBtn');
+            const statusDiv = document.getElementById('status');
+            const delimiterSelect = document.getElementById('delimiter');
+
+            let selectedFile = null;
+
+            // Update UI when a file is chosen
+            fileInput.addEventListener('change', function(e) {
+                const file = this.files[0];
+                if (file) {
+                    selectedFile = file;
+                    fileName.textContent = file.name + '  (' + (file.size / 1024).toFixed(1) + ' KB)';
+                    convertBtn.disabled = false;
+                    statusDiv.textContent = '';
+                    statusDiv.className = '';
+                } else {
+                    selectedFile = null;
+                    fileName.textContent = 'No file selected';
+                    convertBtn.disabled = true;
+                }
+            });
+
+            // Simple CSV parser that respects quoted fields and escaped quotes
+            function parseCSV(text, delimiter) {
+                const lines = text.split(/\r?\n/);
+                const result = [];
+                let insideQuotes = false;
+                let currentRow = [];
+                let currentField = '';
+
+                for (let line of lines) {
+                    // Skip completely empty lines
+                    if (line.trim() === '' && !insideQuotes) continue;
+
+                    for (let i = 0; i < line.length; i++) {
+                        const ch = line[i];
+                        if (insideQuotes) {
+                            if (ch === '"' && line[i + 1] === '"') {
+                                currentField += '"';
+                                i++; // skip the second quote
+                            } else if (ch === '"') {
+                                insideQuotes = false;
+                            } else {
+                                currentField += ch;
+                            }
+                        } else {
+                            if (ch === '"') {
+                                insideQuotes = true;
+                            } else if (ch === delimiter) {
+                                currentRow.push(currentField.trim());
+                                currentField = '';
+                            } else {
+                                currentField += ch;
+                            }
+                        }
+                    }
+
+                    // End of line – push the last field and row
+                    if (!insideQuotes) {
+                        currentRow.push(currentField.trim());
+                        // Only add non‑empty rows (or rows with at least one non‑empty cell)
+                        if (currentRow.some(cell => cell !== '')) {
+                            result.push(currentRow);
+                        }
+                        currentRow = [];
+                        currentField = '';
+                    } else {
+                        // Line break inside quoted field – add a newline character
+                        currentField += '\n';
+                    }
+                }
+
+                // In case the file didn't end with a newline
+                if (currentRow.length > 0 || currentField !== '') {
+                    currentRow.push(currentField.trim());
+                    if (currentRow.some(cell => cell !== '')) {
+                        result.push(currentRow);
+                    }
+                }
+
+                return result;
+            }
+
+            // Main conversion
+            function convertCSVtoXLSX(file, delimiter) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const csvText = e.target.result;
+                            let workbook;
+
+                            if (delimiter === 'auto') {
+                                // Let SheetJS detect everything
+                                workbook = XLSX.read(csvText, {
+                                    type: 'string',
+                                    raw: true,
+                                    cellDates: true
+                                });
+                            } else {
+                                // Manual parse with chosen delimiter
+                                const rows = parseCSV(csvText, delimiter);
+                                if (rows.length === 0) {
+                                    throw new Error('The file appears to be empty or could not be parsed.');
+                                }
+                                const ws = XLSX.utils.aoa_to_sheet(rows);
+                                workbook = XLSX.utils.book_new();
+                                XLSX.utils.book_append_sheet(workbook, ws, 'Sheet1');
+                            }
+
+                            // Write to XLSX (array buffer)
+                            const wbArray = XLSX.write(workbook, {
+                                bookType: 'xlsx',
+                                type: 'array'
+                            });
+                            resolve(wbArray);
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    reader.onerror = function() {
+                        reject(new Error('Failed to read the file.'));
+                    };
+                    reader.readAsText(file);
+                });
+            }
+
+            // Trigger download
+            function downloadXLSX(arrayBuffer, originalFileName) {
+                const blob = new Blob([arrayBuffer], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                // Replace .csv, .tsv, .txt with .xlsx
+                const base = originalFileName.replace(/\.[^.]+$/, '') || 'converted';
+                link.download = base + '.xlsx';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+            }
+
+            // Convert button handler
+            convertBtn.addEventListener('click', async function() {
+                if (!selectedFile) {
+                    statusDiv.textContent = '⚠️ Please choose a CSV file first.';
+                    statusDiv.className = 'error';
+                    return;
+                }
+
+                const delimiter = delimiterSelect.value;
+                statusDiv.textContent = '⏳ Converting… please wait.';
+                statusDiv.className = '';
+
+                try {
+                    const arrayBuffer = await convertCSVtoXLSX(selectedFile, delimiter);
+                    downloadXLSX(arrayBuffer, selectedFile.name);
+                    statusDiv.textContent = '✅ Conversion successful! Download started.';
+                    statusDiv.className = 'success';
+                } catch (err) {
+                    statusDiv.textContent = '❌ Error: ' + err.message;
+                    statusDiv.className = 'error';
+                    console.error(err);
+                }
+            });
+
+            // Drag‑and‑drop support (optional enhancement)
+            const uploadArea = document.querySelector('.upload-area');
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#0f8b3a';
+                this.style.background = '#f0fcf3';
+            });
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#b8d1e8';
+                this.style.background = '#fafdff';
+            });
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#b8d1e8';
+                this.style.background = '#fafdff';
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    fileInput.dispatchEvent(new Event('change'));
+                }
+            });
+        })();
+    </script>
+
+</body>
+</html>
